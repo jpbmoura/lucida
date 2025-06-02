@@ -5,8 +5,8 @@ type Exam = {
 
 type Question = {
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options?: string[];
+  correctAnswer: number | boolean;
 };
 
 type Config = {

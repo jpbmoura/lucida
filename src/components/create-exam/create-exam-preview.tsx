@@ -16,6 +16,7 @@ import { FileText, Download, Edit, Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
 import router from "next/router";
+import { DBExam } from "@/types/exam";
 
 interface ExamConfig {
   title: string;
@@ -35,16 +36,20 @@ interface CreateExamPreviewProps {
   files: File[];
   config: ExamConfig;
   onBack: () => void;
+  onSave?: (exam: any) => Promise<void>;
+  existingExam?: DBExam;
 }
 
 export function CreateExamPreview({
   files,
   config,
   onBack,
+  onSave,
+  existingExam,
 }: CreateExamPreviewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [examGenerated, setExamGenerated] = useState(false);
-  const [generatedExam, setGeneratedExam] = useState<any>(null);
+  const [examGenerated, setExamGenerated] = useState(!!existingExam);
+  const [generatedExam, setGeneratedExam] = useState<any>(existingExam || null);
   const { toast } = useToast();
 
   const handleUploadFilesAndGenerateQuestions = async (files: File[]) => {
@@ -110,12 +115,15 @@ export function CreateExamPreview({
   };
 
   const handleCreateExam = async () => {
-    await axios("/api/exam", {
-      method: "POST",
-      data: generatedExam,
-    });
-
-    router.push("/dashboard/exams");
+    if (onSave && existingExam) {
+      await onSave(generatedExam);
+    } else {
+      await axios("/api/exam", {
+        method: "POST",
+        data: generatedExam,
+      });
+      router.push("/dashboard/exams");
+    }
   };
 
   return (
@@ -201,17 +209,19 @@ export function CreateExamPreview({
               </dl>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold">Materiais de Origem</h3>
-              <ul className="mt-2 space-y-1">
-                {files.map((file, index) => (
-                  <li key={index} className="flex items-center text-sm">
-                    <FileText className="mr-2 h-4 w-4" />
-                    {file.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {files.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold">Materiais de Origem</h3>
+                <ul className="mt-2 space-y-1">
+                  {files.map((file, index) => (
+                    <li key={index} className="flex items-center text-sm">
+                      <FileText className="mr-2 h-4 w-4" />
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
@@ -219,8 +229,8 @@ export function CreateExamPreview({
             Voltar para Personalização
           </Button>
           {examGenerated ? (
-            <Button asChild>
-              <Link href="/dashboard/exams">Ver Todas as Provas</Link>
+            <Button onClick={handleCreateExam}>
+              {existingExam ? "Salvar Alterações" : "Ver Todas as Provas"}
             </Button>
           ) : (
             <Button
@@ -243,16 +253,16 @@ export function CreateExamPreview({
       {examGenerated && generatedExam && (
         <Card>
           <CardHeader>
-            <CardTitle>{generatedExam.config.title}</CardTitle>
+            <CardTitle>{generatedExam.title || generatedExam.config.title}</CardTitle>
             <CardDescription className="flex flex-col gap-1 ">
-              <span>{generatedExam.config.description}</span>
+              <span>{generatedExam.description || generatedExam.config.description}</span>
               <div className="flex items-center gap-2">
-                <span>{generatedExam.config.timeLimit} minutos</span>
+                <span>{generatedExam.timeLimit || generatedExam.config.timeLimit} minutos</span>
                 <span>
-                  {generatedExam.config.difficulty === "easy" && "Fácil"}
-                  {generatedExam.config.difficulty === "medium" && "Médio"}
-                  {generatedExam.config.difficulty === "hard" && "Difícil"}
-                  {generatedExam.config.difficulty === "mixed" && "Misto"}
+                  {generatedExam.difficulty === "easy" && "Fácil"}
+                  {generatedExam.difficulty === "medium" && "Médio"}
+                  {generatedExam.difficulty === "hard" && "Difícil"}
+                  {generatedExam.difficulty === "mixed" && "Misto"}
                 </span>
               </div>
             </CardDescription>
@@ -266,85 +276,64 @@ export function CreateExamPreview({
               <TabsContent value="exam" className="space-y-4 mt-4">
                 <div className="rounded-md border p-4">
                   <div className="mt-6 space-y-6">
-                    {generatedExam.questions.map(
-                      (question: any, index: number) => (
-                        <div key={index} className="space-y-2">
-                          <h3 className="font-medium">
-                            {index + 1}. {question.question}
-                          </h3>
-
+                    {generatedExam.questions.map((question: any, index: number) => (
+                      <div key={index} className="space-y-2">
+                        <h3 className="font-medium">
+                          {index + 1}. {question.question}
+                        </h3>
+                        {question.options && (
                           <div className="ml-6 space-y-1">
-                            {question.type === 'multipleChoice' ? (
-                              question.options.map((option: string, optionIndex: number) => (
-                                <div
-                                  key={optionIndex}
-                                  className="flex items-center space-x-2"
-                                >
-                                  <div className="h-4 w-4 rounded-full border border-primary"></div>
-                                  <span>{option}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-2">
-                                  <div className="h-4 w-4 rounded-full border border-primary"></div>
-                                  <span>Verdadeiro</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="h-4 w-4 rounded-full border border-primary"></div>
-                                  <span>Falso</span>
-                                </div>
+                            {question.options.map((option: string, optionIndex: number) => (
+                              <div
+                                key={optionIndex}
+                                className="flex items-center space-x-2"
+                              >
+                                <input
+                                  type="radio"
+                                  name={`question-${index}`}
+                                  className="h-4 w-4"
+                                  disabled
+                                />
+                                <label>{option}</label>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        </div>
-                      )
-                    )}
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </TabsContent>
-
               <TabsContent value="answers" className="space-y-4 mt-4">
                 <div className="rounded-md border p-4">
-                  <h2 className="text-xl font-bold">
-                    Gabarito: {generatedExam.config.title}
+                  <h2 className="text-xl font-bold mb-4">
+                    Gabarito: {generatedExam.title || generatedExam.config.title}
                   </h2>
                   <div className="mt-6 space-y-4">
-                    {generatedExam.questions.map(
-                      (question: any, index: number) => (
-                        <div key={index} className="space-y-1">
-                          <h3 className="font-medium">
-                            {index + 1}. {question.question}
-                          </h3>
-                          <div className="ml-6">
-                            <span className="text-sm font-medium">
-                              Resposta:{" "}
-                            </span>
-                            <span>
-                              {question.type === 'multipleChoice' 
-                                ? question.options[question.correctAnswer]
-                                : question.correctAnswer ? 'Verdadeiro' : 'Falso'}
-                            </span>
-                          </div>
+                    {generatedExam.questions.map((question: any, index: number) => (
+                      <div key={index} className="space-y-1">
+                        <h3 className="font-medium">
+                          {index + 1}. {question.question}
+                        </h3>
+                        <div className="ml-6">
+                          <span className="text-sm font-medium">
+                            Resposta:{" "}
+                          </span>
+                          <span>
+                            {question.options
+                              ? question.options[question.correctAnswer]
+                              : question.correctAnswer
+                              ? "Verdadeiro"
+                              : "Falso"}
+                          </span>
                         </div>
-                      )
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </TabsContent>
             </Tabs>
           </CardContent>
-          <CardFooter className="justify-between">
-            <Button variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Editar Questões
-            </Button>
-
-            <Button onClick={handleCreateExam}>
-              <Download className="mr-2 h-4 w-4" />
-              Salvar Prova
-            </Button>
-          </CardFooter>
         </Card>
       )}
     </div>

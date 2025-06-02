@@ -41,4 +41,54 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { status: "unauthorized", message: "Usuário não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    await connectToDB();
+
+    const { id } = await context.params;
+    const body = await request.json();
+
+    const exam = await Exam.findById(id);
+
+    if (!exam) {
+      return NextResponse.json(
+        { status: "error", message: "Prova não encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Update exam fields
+    exam.title = body.title;
+    exam.description = body.description;
+    exam.questions = body.questions;
+    exam.updatedAt = new Date();
+
+    await exam.save();
+
+    return NextResponse.json({
+      status: "success",
+      message: "Exam updated successfully",
+      exam,
+    });
+  } catch (error) {
+    console.error("[EXAM_UPDATE_ERROR]", error);
+    return NextResponse.json(
+      { status: "error", message: "Failed to update exam" },
+      { status: 500 }
+    );
+  }
 } 

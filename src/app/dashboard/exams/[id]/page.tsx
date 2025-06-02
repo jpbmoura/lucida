@@ -82,9 +82,11 @@ export default function ExamPreviewPage() {
               Voltar
             </Link>
           </Button>
-          <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/exams/${params.id}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </Link>
           </Button>
           <Button>
             <Download className="mr-2 h-4 w-4" />

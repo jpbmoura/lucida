@@ -111,6 +111,11 @@ export function useNavItems() {
       icon: <CreditCard className="h-5 w-5" />,
       disabled: shouldHideBilling,
     },
+    {
+      title: "Integrações",
+      href: "/dashboard/integrations",
+      icon: <Settings className="h-5 w-5" />,
+    },
   ];
 
   return allNavItems;

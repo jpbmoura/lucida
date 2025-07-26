@@ -54,6 +54,26 @@ const UserSchema = new mongoose.Schema({
       default: () => new Date(),
     },
   },
+  // Integrations
+  integrations: {
+    type: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        isActive: {
+          type: Boolean,
+          default: false,
+        },
+        apiKey: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    default: [],
+  },
   // Metadata
   createdAt: {
     type: Date,

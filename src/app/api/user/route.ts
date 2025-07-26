@@ -33,7 +33,19 @@ export async function GET(request: NextRequest) {
       user.usage.examsThisPeriod = 0;
       user.usage.examsThisPeriodResetDate = new Date();
 
+      // Initialize integrations array for new users
+      user.integrations = [];
+
       await user.save();
+    }
+
+    // Initialize integrations array if it doesn't exist (for existing users)
+    if (!user.integrations) {
+      user.integrations = [];
+      await user.save();
+      console.log(
+        `[USER_GET] Initialized integrations array for existing user ${userId}`
+      );
     }
 
     // Check if usage needs to be reset based on plan duration
@@ -82,6 +94,7 @@ export async function GET(request: NextRequest) {
           id: user.id,
           subscription: user.subscription,
           usage: user.usage,
+          integrations: user.integrations || [],
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
